@@ -38,16 +38,21 @@ jobs:
           # Read all project directories from the environment variable
           IFS=' ' read -r -a projects_array <<< "$ALL_PROJECTS"
 
-          # Loop through each project directory
-          for dir in "${projects_array[@]}"; do
-            # Check for changes in the .sln files in this directory
-            if git diff --name-only HEAD^ HEAD -- "${dir}"*.sln | grep -q '\.sln$'; then
-              modified_projects+=("$dir")  # Add modified project to the array
-            fi
-          done
+          # Check if there are previous commits to compare
+          if git rev-parse --quiet --verify HEAD^; then
+            # Loop through each project directory
+            for dir in "${projects_array[@]}"; do
+              # Check for changes in the .sln files in this directory
+              if git diff --name-only HEAD^ HEAD -- "${dir}"*.sln | grep -q '\.sln$'; then
+                modified_projects+=("$dir")  # Add modified project to the array
+              fi
+            done
 
-          # Print modified projects
-          echo "Modified projects found: ${modified_projects[@]}"
+            # Print modified projects
+            echo "Modified projects found: ${modified_projects[@]}"
+          else
+            echo "No previous commit to compare. Skipping change detection."
+          fi
 
           # Save the modified projects as a single string in an environment variable
           echo "MODIFIED_PROJECTS=${modified_projects[*]}" >> $GITHUB_ENV
