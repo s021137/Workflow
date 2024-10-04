@@ -1,4 +1,4 @@
-name: Collect Projects
+name: Collect Modified Projects
 
 on: [push, pull_request]
 
@@ -10,30 +10,53 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Find project directories containing .sln files
-        id: find-projects
+      - name: Get all project directories
+        id: get-projects
         run: |
           # Initialize an empty array for projects
           projects=()
 
-          # Loop through each directory and check for .sln files
+          # Find all project directories containing .sln files
           for dir in */; do
             if ls "${dir}"*.sln 1> /dev/null 2>&1; then
               projects+=("$dir")
             fi
           done
 
-          # Print the projects to the console
-          echo "Projects found: ${projects[@]}"
+          # Print all projects found
+          echo "All projects found: ${projects[@]}"
 
           # Save the projects as a single string in an environment variable
-          echo "PROJECTS=${projects[*]}" >> $GITHUB_ENV
+          echo "ALL_PROJECTS=${projects[*]}" >> $GITHUB_ENV
 
-      - name: Use the array of projects
+      - name: Check for changes in project directories
+        id: check-changes
         run: |
-          echo "Array of projects:"
-          IFS=' ' read -r -a projects_array <<< "$PROJECTS"
-          for project in "${projects_array[@]}"; do
+          # Initialize an empty array for modified projects
+          modified_projects=()
+
+          # Read all project directories from the environment variable
+          IFS=' ' read -r -a projects_array <<< "$ALL_PROJECTS"
+
+          # Loop through each project directory
+          for dir in "${projects_array[@]}"; do
+            # Check for changes in the .sln files in this directory
+            if git diff --name-only HEAD^ HEAD -- "${dir}"*.sln | grep -q '\.sln$'; then
+              modified_projects+=("$dir")  # Add modified project to the array
+            fi
+          done
+
+          # Print modified projects
+          echo "Modified projects found: ${modified_projects[@]}"
+
+          # Save the modified projects as a single string in an environment variable
+          echo "MODIFIED_PROJECTS=${modified_projects[*]}" >> $GITHUB_ENV
+
+      - name: Use the array of modified projects
+        run: |
+          echo "Array of modified projects:"
+          IFS=' ' read -r -a modified_projects_array <<< "$MODIFIED_PROJECTS"
+          for project in "${modified_projects_array[@]}"; do
             echo "$project"
-            # You can add additional commands to operate on each project here
+            # You can add additional commands to operate on each modified project here
           done
