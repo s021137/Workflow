@@ -1,2 +1,12 @@
+name: Test Manual Trigger
+
 on:
   workflow_dispatch:
+
+jobs:
+  say_hello:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print a message
+        run: echo "Hello from GitHub Actions!"
